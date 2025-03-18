@@ -1,29 +1,27 @@
-import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import type { Session } from 'next-auth'
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { CheckCircle, Clock, Users, FileText } from 'lucide-react'
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Clock, Users, FileText } from "lucide-react";
+import { getSession } from "@/lib/auth-utils";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions) as Session | null
+  const session = await getSession();
 
+  // If authenticated, redirect based on role
   if (session?.user) {
-    switch (session.user.role) {
-      case 'faculty':
-        redirect('/faculty/courses')
-      case 'ta':
-        redirect('/ta/courses')
-      case 'student':
-        redirect('/student/courses')
-      default:
-        // If role is not recognized, show marketing page
-        break
+    const roleRoutes = {
+      faculty: "/faculty/courses",
+      ta: "/ta/courses",
+      student: "/student/courses",
+    } as const;
+
+    const userRole = session.user.role as keyof typeof roleRoutes;
+    if (userRole in roleRoutes) {
+      return redirect(roleRoutes[userRole]);
     }
   }
 
-  // If not authenticated or role not recognized, show marketing page
+  // Marketing page for unauthenticated users
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center overflow-hidden bg-dot-pattern">
       {/* Floating Elements */}
@@ -57,10 +55,13 @@ export default async function Home() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 py-20">
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-4">
           Grade, manage, and track
-          <span className="block text-muted-foreground mt-2">all in one place</span>
+          <span className="block text-muted-foreground mt-2">
+            all in one place
+          </span>
         </h1>
         <p className="mx-auto max-w-[600px] text-muted-foreground mb-8">
-          Efficiently manage your academic grading workflow and boost productivity with AcadeFlow.
+          Efficiently manage your academic grading workflow and boost
+          productivity with AcadeFlow.
         </p>
         <Button size="lg" asChild>
           <Link href="/demo">Get free demo</Link>
@@ -101,6 +102,5 @@ export default async function Home() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

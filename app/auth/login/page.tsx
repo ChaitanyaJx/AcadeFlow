@@ -1,65 +1,56 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { GraduationCap } from 'lucide-react'
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { GraduationCap } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const callbackUrl = searchParams.get("callbackUrl") || "/"
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
+  // Clear session cookie when the login page loads to avoid stale session conflicts
+  useEffect(() => {
+    document.cookie = "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+  }, []);
 
-    const formData = new FormData(e.currentTarget)
-    
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
     try {
-      const response = await signIn("credentials", {
-        email: formData.get("email"),
-        password: formData.get("password"),
-        redirect: false,
-        callbackUrl,
-      })
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (!response) {
-        throw new Error("Received no response from authentication server")
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to login");
       }
 
-      if (response.error) {
-        // Handle specific error cases
-        switch (response.error) {
-          case "CredentialsSignin":
-            setError("Invalid email or password")
-            break
-          case "AccessDenied":
-            setError("You don't have permission to access this resource")
-            break
-          default:
-            setError("An error occurred during sign in")
-        }
-        setIsLoading(false)
-        return
-      }
-
-      if (response.ok) {
-        router.push(response.url || callbackUrl)
-        router.refresh()
-      }
+      // On successful login, redirect to the homepage or dashboard
+      router.push("/");
+      router.refresh();
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.")
-      setIsLoading(false)
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -78,36 +69,34 @@ export default function LoginPage() {
         <CardContent>
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertDescription>
-                {error}
-              </AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  name="email" 
-                  type="email" 
-                  placeholder="m@example.com" 
-                  required 
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
                   disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  name="password" 
-                  type="password" 
-                  required 
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
                   disabled={isLoading}
                 />
               </div>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={isLoading}
               >
@@ -138,5 +127,5 @@ export default function LoginPage() {
         </CardFooter>
       </Card>
     </div>
-  )
+  );
 }

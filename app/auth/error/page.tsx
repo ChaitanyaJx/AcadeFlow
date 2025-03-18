@@ -9,29 +9,36 @@ import { AlertCircle } from "lucide-react"
 export default function AuthError() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const errorMessage = searchParams.get("error")
+  const error = searchParams.get("error")
 
-  useEffect(() => {
-    if (errorMessage) {
-      // Log the error to an error reporting service
-      console.error("Authentication error:", errorMessage)
-    }
-  }, [errorMessage])
-
-  const getErrorMessage = (error: string) => {
+  const getErrorMessage = () => {
+    if (!error) return "An unexpected error occurred"
+    
     switch (error) {
       case "CredentialsSignin":
         return "Invalid email or password. Please try again."
+      case "OAuthSignin":
+        return "Error occurred while signing in with OAuth provider."
+      case "OAuthCallback":
+        return "Error occurred while processing OAuth callback."
+      case "OAuthCreateAccount":
+        return "Error occurred while creating OAuth account."
+      case "EmailCreateAccount":
+        return "Error occurred while creating email account."
+      case "Callback":
+        return "Error occurred during callback processing."
       case "AccessDenied":
-        return "You don't have permission to access this resource."
-      case "Configuration":
-        return "There is a problem with the server configuration."
-      case "TokenExpired":
-        return "Your session has expired. Please sign in again."
+        return "Access denied. You don't have permission to access this resource."
+      case "Verification":
+        return "The verification token has expired or is invalid."
       default:
-        return "An unexpected error occurred. Please try again later."
+        return `Authentication error: ${error}`
     }
   }
+
+  useEffect(() => {
+    console.log("Current error:", error) // For debugging
+  }, [error])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -40,36 +47,27 @@ export default function AuthError() {
           <div className="flex items-center justify-center mb-4">
             <AlertCircle className="h-12 w-12 text-red-600" />
           </div>
-          <CardTitle className="text-2xl text-center">Authentication Error</CardTitle>
+          <CardTitle className="text-2xl text-center">Sign In Error</CardTitle>
           <CardDescription className="text-center text-red-600">
-            {errorMessage ? getErrorMessage(errorMessage) : "An error occurred during authentication"}
+            {getErrorMessage()}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {errorMessage && (
-            <p className="text-center text-sm text-gray-600 mb-4">
-              Error Type: {errorMessage}
-            </p>
-          )}
+          <div className="text-center text-sm text-gray-600 mb-4">
+            Please try signing in again or contact support if the problem persists.
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="flex space-x-4 w-full">
             <Button 
-              variant="outline" 
               className="flex-1"
               onClick={() => router.push('/auth/login')}
             >
               Back to Login
             </Button>
-            <Button 
-              className="flex-1"
-              onClick={() => router.push('/auth/login')}
-            >
-              Try Again
-            </Button>
           </div>
           <div className="text-sm text-center text-gray-500">
-            If this problem persists, please contact support
+            Need help? Contact support for assistance
           </div>
         </CardFooter>
       </Card>
